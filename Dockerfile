@@ -11,15 +11,19 @@ RUN apt-get update && apt-get install -y \
 # Define diretório de trabalho
 WORKDIR /app
 
-# Copia os arquivos do projeto para dentro da imagem
-COPY . .
+# Copia apenas o requirements.txt primeiro para aproveitar o cache do Docker
+COPY requirements.txt .
 
 # Instala as dependências do projeto
-RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Expõe a porta que o Render usará
-EXPOSE 5000
+# Copia o restante dos arquivos do projeto
+COPY . .
 
-# Comando para iniciar o app usando Gunicorn
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000"]
+# Expõe a porta que o Cloud Run usará
+ENV PORT 8080
+EXPOSE 8080
+
+# Comando para iniciar o app usando Gunicorn, usando a variável PORT
+CMD exec gunicorn --bind :$PORT app:app
